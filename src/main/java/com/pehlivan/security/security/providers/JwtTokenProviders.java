@@ -3,7 +3,9 @@ package com.pehlivan.security.security.providers;
 
 import com.pehlivan.security.security.adapters.SecurityUser;
 import com.pehlivan.security.security.authenticaitons.JwtAuthentication;
+import com.pehlivan.security.security.exceptions.JwtTokenException;
 import com.pehlivan.security.services.JwtTokenService;
+import io.jsonwebtoken.JwtException;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -21,12 +23,17 @@ public class JwtTokenProviders  implements AuthenticationProvider {
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         JwtAuthentication auth = (JwtAuthentication)authentication;
         String token =  auth.getToken();
-        if (tokenService.isValid(token))
-        {
-            UserDetails user =  tokenService.getUserFromToken(token);
-            return new JwtAuthentication(user.getUsername(),user.getAuthorities(),token);
+        try {
+            if (tokenService.isValid(token))
+            {
+                UserDetails user =  tokenService.getUserFromToken(token);
+                return new JwtAuthentication(user.getUsername(),user.getAuthorities(),token);
+            }
+            else  throw new BadCredentialsException("Invalid Token!");
+        }catch (JwtTokenException e){
+            throw new BadCredentialsException("Invalid Token!");
         }
-        throw new BadCredentialsException("Invalid Token!");
+
     }
 
     @Override
