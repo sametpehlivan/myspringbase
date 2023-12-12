@@ -1,7 +1,6 @@
 package com.pehlivan.security.security.configs;
 
 import com.pehlivan.security.security.filters.JwtFilter;
-import com.pehlivan.security.security.providers.JwtTokenProviders;
 import com.pehlivan.security.services.JpaUserDetailService;
 import lombok.AllArgsConstructor;
 
@@ -10,19 +9,18 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.authentication.configuration.EnableGlobalAuthentication;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 @Configuration
@@ -31,57 +29,51 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig{
 
-    private final static String[] basicAuthUrlPatterns = {
-            "/login"
-    };
+    private  final LogoutHandler logoutHandler;
+    
     private final static String[] permittedUrlPatterns = {
             "/register",
-            "/refresh_token"
+            "/refresh_token",
+            "/error**",
+            "/test2"
     };
 
     @Bean
     @Order(1)
     public SecurityFilterChain basicFilterChain(
             HttpSecurity http,
-            DaoAuthenticationProvider daoAuthenticationProvider
-    ) throws Exception {
-        return http
-                .securityMatcher(basicAuthUrlPatterns)
-                .httpBasic(Customizer.withDefaults())
-                .authorizeHttpRequests()
-                    .requestMatchers(permittedUrlPatterns).permitAll()
-                    .anyRequest().authenticated()
-                    .and()
-                .authenticationProvider(daoAuthenticationProvider)
-                .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                    .and()
-                .build();
-    }
-    @Bean
-    public SecurityFilterChain jwtFilterChain(
-            HttpSecurity http,
+            DaoAuthenticationProvider daoAuthenticationProvider,
             JwtFilter jwtFilter,
-            DaoAuthenticationProvider daoAuthenticationProvider
+            @Qualifier("delegatedAuthenticationEntryPoint")
+            AuthenticationEntryPoint authEntryPoint
     ) throws Exception {
-        return http
-                .addFilterBefore(jwtFilter, BasicAuthenticationFilter.class)
-                .authorizeHttpRequests()
-                    .requestMatchers(permittedUrlPatterns).permitAll()
-                    .anyRequest().authenticated()
-                    .and()
-                .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                    .and()
-                .exceptionHandling()
-                    .and()
-                .build();
+         http
+             .csrf(AbstractHttpConfigurer::disable)
+             .authorizeHttpRequests(ac -> {
+                 ac.requestMatchers(permittedUrlPatterns).permitAll()
+                         .anyRequest().authenticated();
+             })
+             .addFilterAfter(jwtFilter, BasicAuthenticationFilter.class)
+             .httpBasic(basic -> {
+                 basic.authenticationEntryPoint(authEntryPoint);
+             })
+             .logout(logout -> {
+                logout
+                    .addLogoutHandler(logoutHandler)
+                        .logoutSuccessHandler((request, response, authentication) -> SecurityContextHolder.clearContext());
+             })
+             .authenticationProvider(daoAuthenticationProvider)
+             .sessionManagement(s -> {
+                s.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+             });
+        return http.build();
     }
+
+
     @Bean
     public PasswordEncoder passwordEncoder(){
         return NoOpPasswordEncoder.getInstance();
     }
-
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider(JpaUserDetailService userDetailsService, PasswordEncoder passwordEncoder){
         var provider = new DaoAuthenticationProvider();

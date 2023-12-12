@@ -23,7 +23,7 @@ import java.util.function.Function;
 public class JwtTokenService implements UserDetailsService {
     private final JpaUserDetailService userDetailService;
 
-    private static final int EXPIRATION_MILLIS = 1000 * 60 * 10;
+    private static final int EXPIRATION_MILLIS = 1000 * 60 * 10; // 10 minute
     private static final String SECRET_KEY = "myVeryVerySecretKey";
 
     public Date getTokenExpirationDate(String token) {
@@ -48,13 +48,13 @@ public class JwtTokenService implements UserDetailsService {
         return userDetailService.loadUserByUsername(username);
     }
 
-    public boolean isValid(String token)  {
+    public boolean isValid(String token) throws JwtTokenException {
         try {
             var tokenExpired = !isTokenExpired(token);
             var tokenUsernameNotNull = getUsername(token) != null;
             return tokenExpired && tokenUsernameNotNull;
         }catch (Exception e){
-            throw new JwtTokenException(e.getMessage());
+            throw new JwtTokenException("INVALID TOKEN");
         }
     }
 

@@ -7,6 +7,7 @@ import com.pehlivan.security.services.exceptions.NotFoundException;
 import com.pehlivan.security.services.exceptions.TokenRefreshException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -35,8 +36,10 @@ public class RefreshTokenService {
         return refreshToken;
     }
     public RefreshToken findByToken(String token) {
-        return refreshTokenRepository.findByToken(token)
-                .orElseThrow(()-> new NotFoundException("Invalid Token!!"));
+
+        var refreshToken = refreshTokenRepository.findByToken(token)
+                .orElseThrow(()-> new NotFoundException("Refresh token not found"));
+        return  refreshToken;
     }
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
@@ -49,9 +52,12 @@ public class RefreshTokenService {
     public void deleteByUsername(String  username) {
         var user = userDetailService.getByUserName(username);
         var token = user.getRefreshToken();
-        user.setRefreshToken(null);
-        token.setUser(null);
-        refreshTokenRepository.save(token);
+        if (token != null){
+            user.setRefreshToken(null);
+            token.setUser(null);
+            refreshTokenRepository.save(token);
+        }
+
     }
     public void updateUserToken(User user,RefreshToken newToken){
         var oldToken = user.getRefreshToken();

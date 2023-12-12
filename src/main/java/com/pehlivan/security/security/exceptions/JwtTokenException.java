@@ -1,11 +1,10 @@
 package com.pehlivan.security.security.exceptions;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.BadCredentialsException;
+
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ResponseStatus(HttpStatus.FORBIDDEN)
-public class JwtTokenException extends BadCredentialsException {
+public class JwtTokenException extends AuthenticationException {
 
     public JwtTokenException(String msg) {
         super(msg);

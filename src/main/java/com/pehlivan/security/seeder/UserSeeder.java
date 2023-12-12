@@ -1,5 +1,6 @@
 package com.pehlivan.security.seeder;
 
+import com.pehlivan.security.model.BanStatus;
 import com.pehlivan.security.model.User;
 import com.pehlivan.security.services.JpaUserDetailService;
 import com.pehlivan.security.services.RoleService;
@@ -20,7 +21,7 @@ public class UserSeeder implements ApplicationRunner
     private final RoleService roleService;
     private final JpaUserDetailService userService;
     private final PasswordEncoder passwordEncoder;
-    public static final String adminUserName = "ADMIN";
+    public static final String adminUserName = "admin";
     public static final String password = "123456";
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -28,6 +29,7 @@ public class UserSeeder implements ApplicationRunner
             var role = roleService.findByName(RoleSeeder.adminRoleName);
             var user = new User();
             user.setUserName(adminUserName);
+            user.setIsBanned(BanStatus.NO);
             user.setRole(role);
             user.setPassword(passwordEncoder.encode(password));
             userService.save(user);

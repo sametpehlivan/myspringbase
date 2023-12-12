@@ -16,8 +16,11 @@ public class TestController {
         return ResponseEntity.ok().body("test");
     }
     @GetMapping("/test2")
-    @PreAuthorize("hasAuthority('TEST:READ')")
     public ResponseEntity<String> test2(){
+        return ResponseEntity.ok().body("test");
+    }
+    @GetMapping("/test3")
+    public ResponseEntity<String> test4(){
         return ResponseEntity.ok().body("test");
     }
 }
